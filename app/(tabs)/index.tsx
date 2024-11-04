@@ -3,14 +3,24 @@ import { Image, StyleSheet, ScrollView, TouchableOpacity, Modal, Button, Platfor
 import axios from 'axios';
 import { launchImageLibrary } from 'react-native-image-picker';
 import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function StudentInfoScreen() {
   const [student, setStudent] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
+  const requestPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+        alert('Sorry, we need camera roll permissions to make this work!');
+    }
+};
+
   useEffect(() => {
-    axios.get(`http://localhost/CodeIgniter-3.1.13/api/student`)
+    requestPermission();
+
+    axios.get(`http://10.10.4.43/CodeIgniter-3.1.13/api/student`)
       .then(response => {
         setStudent(response.data);
       })
@@ -27,7 +37,7 @@ export default function StudentInfoScreen() {
     );
   }
 
-  const avatarUri = selectedImage ? selectedImage : `http://localhost/CodeIgniter-3.1.13/${student.image}`;
+  const avatarUri = selectedImage ? selectedImage : `http://10.10.4.43/CodeIgniter-3.1.13/${student.image}`;
   const gender = student.user_gender === "1" ? "Male" : "Female";
 
   const openModal = () => {
@@ -74,54 +84,59 @@ export default function StudentInfoScreen() {
       };
       input.click();
     } else {
-      const options = {
-        mediaType: 'photo',
-        includeBase64: false,
-        quality: 1,
-      };
-
-      launchImageLibrary(options, async (response) => {
-        if (response.didCancel) {
+        const options = {
+          mediaType: 'photo',
+          includeBase64: false,
+          quality: 1,
+        };
+    
+        // Mở thư viện hình ảnh
+        const response = await ImagePicker.launchImageLibraryAsync(options);
+        
+        if (response.cancelled) {
           console.log('User cancelled image picker');
           return;
         }
-
-        if (response.errorCode) {
-          console.error('ImagePicker Error: ', response.errorCode);
+    
+        if (response.error) {
+          console.error('ImagePicker Error: ', response.error);
           return;
         }
-
+    
         if (response.assets && response.assets.length > 0) {
           const image = response.assets[0];
           const formData = new FormData();
-          const photo = { uri: image.uri, type: 'image/jpg', name: 'profile.jpg' };
+          const photo = { 
+            uri: image.uri, 
+            type: image.type || 'image/jpg', 
+            name: 'avatar.jpg' };
           formData.append('image', photo);
-
+    
           try {
-            const apiUrl = 'http://localhost/CodeIgniter-3.1.13/api/update_profile_picture';
-            const response = await axios.post(apiUrl, formData, {
-              headers: {
-                'Content-Type': 'multipart/form-data',
-              },
+            const apiUrl = 'http://10.10.4.43/CodeIgniter-3.1.13/api/update_profile_picture';
+            const uploadResponse = await axios.post(apiUrl, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
-
-            const tempuri = 'http://localhost/CodeIgniter-3.1.13/' + response.data.data;
-            setSelectedImage(tempuri);
-            closeModal();
+        
+            const tempuri = 'http://10.10.4.43/CodeIgniter-3.1.13/' + uploadResponse.data.data;
+            setSelectedImage(tempuri); // Cập nhật trạng thái với hình ảnh đã chọn
+            closeModal(); // Đóng modal
             Toast.show({
-              type: 'success',
-              text1: 'Upload successful!',
-              text2: 'Profile picture updated successfully.',
+                type: 'success',
+                text1: 'Upload successful!',
+                text2: 'Profile picture updated successfully.',
             });
-            console.log('Upload successful:', response.data);
+            console.log('Upload successful:', uploadResponse.data);
           } catch (error) {
-            console.error('Upload failed:', error);
+              // Kiểm tra chi tiết lỗi
+              console.error('Upload failed:', error.response ? error.response.data : error.message);
           }
         } else {
           console.log('No image selected');
         }
-      });
-    }
+      };
   };
 
   return (
