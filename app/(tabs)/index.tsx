@@ -84,59 +84,61 @@ export default function StudentInfoScreen() {
       };
       input.click();
     } else {
-        const options = {
-          mediaType: 'photo',
-          includeBase64: false,
-          quality: 1,
-        };
-    
-        // Mở thư viện hình ảnh
-        const response = await ImagePicker.launchImageLibraryAsync(options);
-        
-        if (response.cancelled) {
-          console.log('User cancelled image picker');
-          return;
-        }
-    
-        if (response.error) {
-          console.error('ImagePicker Error: ', response.error);
-          return;
-        }
-    
-        if (response.assets && response.assets.length > 0) {
-          const image = response.assets[0];
-          const formData = new FormData();
-          const photo = { 
-            uri: image.uri, 
-            type: image.type || 'image/jpg', 
-            name: 'avatar.jpg' };
-          formData.append('image', photo);
-    
-          try {
-            const apiUrl = 'http://10.10.4.43/CodeIgniter-3.1.13/api/update_profile_picture';
-            const uploadResponse = await axios.post(apiUrl, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-        
-            const tempuri = 'http://10.10.4.43/CodeIgniter-3.1.13/' + uploadResponse.data.data;
-            setSelectedImage(tempuri); // Cập nhật trạng thái với hình ảnh đã chọn
-            closeModal(); // Đóng modal
-            Toast.show({
-                type: 'success',
-                text1: 'Upload successful!',
-                text2: 'Profile picture updated successfully.',
-            });
-            console.log('Upload successful:', uploadResponse.data);
-          } catch (error) {
-              // Kiểm tra chi tiết lỗi
-              console.error('Upload failed:', error.response ? error.response.data : error.message);
-          }
-        } else {
-          console.log('No image selected');
-        }
+      const options = {
+        mediaType: 'photo',
+        includeBase64: false,
+        quality: 1,
       };
+      
+      // Mở thư viện hình ảnh
+      const response = await ImagePicker.launchImageLibraryAsync(options);
+      
+      if (response.cancelled) {
+        console.log('User cancelled image picker');
+        return;
+      }
+      
+      if (response.error) {
+        console.error('ImagePicker Error: ', response.error);
+        return;
+      }
+      
+      if (response.assets && response.assets.length > 0) {
+        const image = response.assets[0];
+        console.log('Selected Image:', image); // Kiểm tra hình ảnh đã chọn
+      
+        const formData = new FormData();
+        const photo = { 
+          uri: image.uri, 
+          type: image.type || 'image/jpeg',  // Thay đổi từ 'image/jpg' thành 'image/jpeg'
+          name: image.fileName || 'avatar.jpg' // Thêm fileName từ image nếu có
+        };
+        formData.append('image', photo);
+      
+        try {
+          const apiUrl = 'http://10.10.4.43:8081/CodeIgniter-3.1.13/api/update_profile_picture';
+          const uploadResponse = await axios.post(apiUrl, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+      
+          const tempuri = 'http://10.10.4.43:8081/CodeIgniter-3.1.13/' + uploadResponse.data.data;
+          setSelectedImage(tempuri);
+          closeModal();
+          Toast.show({
+            type: 'success',
+            text1: 'Upload successful!',
+            text2: 'Profile picture updated successfully.',
+          });
+          console.log('Upload successful:', uploadResponse.data);
+        } catch (error) {
+          console.error('Upload failed:', error.response ? error.response.data : error.message);
+        }
+      } else {
+        console.log('No image selected');
+      }      
+    };
   };
 
   return (
