@@ -1,70 +1,275 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, StyleSheet, ScrollView, TouchableOpacity, Modal, Button, Platform, View, Text, Alert } from 'react-native';
+import axios from 'axios';
+import { launchImageLibrary } from 'react-native-image-picker';
+import Toast from 'react-native-toast-message';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function StudentInfoScreen() {
+  const [student, setStudent] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-export default function HomeScreen() {
+  useEffect(() => {
+    axios.get(`http://localhost/CodeIgniter-3.1.13/api/student`)
+      .then(response => {
+        setStudent(response.data);
+      })
+      .catch(error => {
+        console.error("Error fetching student info:", error);
+      });
+  }, []);
+
+  if (!student) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading student information...</Text>
+      </View>
+    );
+  }
+
+  const avatarUri = selectedImage ? selectedImage : `http://localhost/CodeIgniter-3.1.13/${student.image}`;
+  const gender = student.user_gender === "1" ? "Male" : "Female";
+
+  const openModal = () => {
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalVisible(false);
+  };
+
+  const uploadImage = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+          const formData = new FormData();
+          formData.append('image', file);
+
+          try {
+            const apiUrl = 'http://localhost/CodeIgniter-3.1.13/api/update_profile_picture';
+            const response = await axios.post(apiUrl, formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+
+            const tempuri = 'http://localhost/CodeIgniter-3.1.13/' + response.data.data;
+            setSelectedImage(tempuri);
+            closeModal();
+            Toast.show({
+              type: 'success',
+              text1: 'Upload successful!',
+              text2: 'Profile picture updated successfully.',
+            });
+            console.log('Upload web successful:', response.data);
+            
+          } catch (error) {
+            console.error('Upload failed:', error);
+          }
+        }
+      };
+      input.click();
+    } else {
+      const options = {
+        mediaType: 'photo',
+        includeBase64: false,
+        quality: 1,
+      };
+
+      launchImageLibrary(options, async (response) => {
+        if (response.didCancel) {
+          console.log('User cancelled image picker');
+          return;
+        }
+
+        if (response.errorCode) {
+          console.error('ImagePicker Error: ', response.errorCode);
+          return;
+        }
+
+        if (response.assets && response.assets.length > 0) {
+          const image = response.assets[0];
+          const formData = new FormData();
+          const photo = { uri: image.uri, type: 'image/jpg', name: 'profile.jpg' };
+          formData.append('image', photo);
+
+          try {
+            const apiUrl = 'http://localhost/CodeIgniter-3.1.13/api/update_profile_picture';
+            const response = await axios.post(apiUrl, formData, {
+              headers: {
+                'Content-Type': 'multipart/form-data',
+              },
+            });
+
+            const tempuri = 'http://localhost/CodeIgniter-3.1.13/' + response.data.data;
+            setSelectedImage(tempuri);
+            closeModal();
+            Toast.show({
+              type: 'success',
+              text1: 'Upload successful!',
+              text2: 'Profile picture updated successfully.',
+            });
+            console.log('Upload successful:', response.data);
+          } catch (error) {
+            console.error('Upload failed:', error);
+          }
+        } else {
+          console.log('No image selected');
+        }
+      });
+    }
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.profileContainer}>
+        <Image source={{ uri: avatarUri }} style={styles.avatar} />
+        <View style={styles.infoTextContainer}>
+          <Text style={styles.name}>{student.firstname} {student.lastname}</Text>
+          <Text style={styles.studentId}>Student ID: Y240001</Text>
+          <TouchableOpacity style={styles.changeButton} onPress={openModal}>
+            <Text style={styles.changeButtonText}>Change profile picture</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.infoContainer}>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Gender:</Text>
+          <Text style={styles.value}>{gender}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Date of Birth:</Text>
+          <Text style={styles.value}>{student.user_birthday}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Email:</Text>
+          <Text style={styles.value}>{student.email}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Phone:</Text>
+          <Text style={styles.value}>{student.user_phone}</Text>
+        </View>
+      </View>
+
+      {/* Modal để chọn ảnh đại diện */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Change Profile Picture</Text>
+            <Button title="Select from gallery" onPress={uploadImage} />
+            <View style={styles.buttonContainer}>
+              <Button title="Cancel" onPress={closeModal} color="#888" />
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Toast />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flexGrow: 1,
+    padding: 16,
+    backgroundColor: '#fff',
+  },
+  profileContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 24,
   },
-  stepContainer: {
-    gap: 8,
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
+    backgroundColor: '#e0e0e0',
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4b69c1',
+  },
+  studentId: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  changeButton: {
+    backgroundColor: '#4b69c1',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+  },
+  changeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  infoContainer: {
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    width: 120,
+  },
+  value: {
+    fontSize: 16,
+    fontWeight: '400',
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 16,
   },
 });
