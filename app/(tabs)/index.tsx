@@ -12,22 +12,32 @@ import {
   Text,
   Alert,
 } from "react-native";
-import axios, { AxiosError } from "axios";
-import { launchImageLibrary } from "react-native-image-picker";
+import axios from "axios";
 import Toast from "react-native-toast-message";
 import * as ImagePicker from "expo-image-picker";
 
 export default function StudentInfoScreen() {
-  const [student, setStudent] = useState();
-  //   {
-  //   image: "",
-  //   user_gender: "",
-  //   lastname: "",
-  //   firstname: "",
-  //   user_birthday: "",
-  //   email: "",
-  //   user_phone: "",
-  // }
+  const [student, setStudent] = useState({
+    sv_sinh_vien_ma: "",
+    sv_sinh_vien_ten: "",
+    sv_sinh_vien_ho: "",
+    sv_sinh_vien_gioi_tinh: "",
+    sv_sinh_vien_avatar: "",
+    firstname: "",
+    sv_lop_ma: "",
+    sv_lop_ten_tieng_anh: "",
+    sv_lop_ten_tieng_viet: "",
+    sv_sinh_vien_ngay_sinh: "",
+    sv_sinh_vien_email: "",
+    sv_sinh_vien_sdt: "",
+    sv_sinh_vien_dia_chi_thuong_tru: "",
+    sv_sinh_vien_cccd: "",
+    dm_dan_toc_ten_tieng_anh: "",
+    dm_ten_ton_giao_tieng_anh: "",
+    quoc_tich_hien_tai_tieng_anh: "",
+    ctdt_khoa_hoc_nam_hoc: "",
+    sv_sinh_vien_ngay_nhap_hoc: "",
+  });
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [publicKey, setPublicKey] = useState("");
@@ -43,23 +53,18 @@ export default function StudentInfoScreen() {
     requestPermission();
 
     axios
-      .get(`http://localhost/studentsdnc-api/api/v1/common/keys/getPublicKey`, {
-        headers: {
-          "Content-Type": "application/json", // Nếu cần thiết, bạn có thể thêm các header khác ở đây
-          "DHNCT-API-KEY": "@cntt@dhnct@",
-        },
-      })
-      .then((response) => {
-        // setPublicKey(response.data?.publicKey);
-        // console.log(response.data?.publicKey);
-        const publicKey = response.data?.publicKey;
-        // const encrypt = new JSEncrypt();
-        // encrypt.setPublicKey(publicKey);
-        // const encryptedPassword = encrypt.encrypt("12345");
-        // console.log(encryptedPassword);
-      })
+      .get(
+        `http://10.10.4.43/studentsdnc-api/api/v1/common/keys/getPublicKey`,
+        {
+          headers: {
+            "Content-Type": "application/json", // Nếu cần thiết, bạn có thể thêm các header khác ở đây
+            "DHNCT-API-KEY": "@cntt@dhnct@",
+          },
+        }
+      )
+      .then((response) => {})
       .catch((error) => {
-        console.error("Error fetching student info:", error);
+        console.error("Error getting public key:", error);
       });
 
     axios
@@ -68,7 +73,7 @@ export default function StudentInfoScreen() {
         {
           // .get(`http://10.10.4.43/CodeIgniter-3.1.13/api/student`, {
           headers: {
-            "Content-Type": "application/json", // Nếu cần thiết, bạn có thể thêm các header khác ở đây
+            "Content-Type": "application/json",
             "DHNCT-API-KEY": "@cntt@dhnct@",
             "DHNCT-Authorization":
               "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJxbF9uZ3VvaV9kdW5nX2lkIjoiNTEwIiwicWxfbmd1b2lfZHVuZ19ob190ZW4iOiJUclx1MWVhN24gVGhcdTFlY2IgSFx1MDBlMCIsInFsX25ndW9pX2R1bmdfZW1haWwiOiJ0ZXN0MTNAZ21haWwuY29tIiwicWxfbmd1b2lfZHVuZ19hdmF0YXIiOm51bGwsInFsX25ndW9pX2R1bmdfdG9rZW4iOm51bGwsInFsX25ndW9pX2R1bmdfbG9haSI6IjEiLCJxbF9uZ3VvaV9kdW5nX25nYXlfdGFvIjoiMjAyNC0xMC0yMiAxNTowOToyMCIsInFsX25ndW9pX2R1bmdfbmdheV9jYXBfbmhhdCI6IjIwMjQtMTAtMjIgMTU6MDk6MjAiLCJhY3RpdmVfZmxhZyI6IjEiLCJjcmVhdGVkX2F0IjoiMjAyNC0xMC0yMiAxNTowOToyMCIsInVwZGF0ZWRfYXQiOiIyMDI0LTEwLTIyIDE1OjA5OjIwIiwicWxfbmd1b2lfZHVuZ19obyI6IlRyXHUxZWE3biBUaFx1MWVjYiIsInFsX25ndW9pX2R1bmdfdGVuIjoiSFx1MDBlMCIsInN0YXJ0X3RpbWUiOjE3MzA3NzkyNjEuNDg3MTM0fQ.Dlv2ibHcXer3KGYp4G0lj2HFQpq8srQr6ldv6PQMHR8",
@@ -94,7 +99,8 @@ export default function StudentInfoScreen() {
 
   const avatarUri = selectedImage
     ? selectedImage
-    : `http://10.10.4.43/CodeIgniter-3.1.13/${student.image}`;
+    : // : `http://10.10.4.43/CodeIgniter-3.1.13/${student.image}`;
+      `${student.sv_sinh_vien_avatar}`;
   const gender = student.sv_sinh_vien_gioi_tinh === "2" ? "Male" : "Female";
 
   const openModal = () => {
@@ -203,7 +209,10 @@ export default function StudentInfoScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.profileContainer}>
-        <Image source={{ uri: avatarUri }} style={styles.avatar} />
+        <Image
+          source={{ uri: avatarUri || "đường dẫn mặc định" }}
+          style={styles.avatar}
+        />
         <View style={styles.infoTextContainer}>
           <Text style={styles.name}>
             {student.sv_sinh_vien_ten} {student.sv_sinh_vien_ho}
@@ -219,8 +228,12 @@ export default function StudentInfoScreen() {
 
       <View style={styles.infoContainer}>
         <View style={styles.infoRow}>
-          <Text style={styles.label}>Class Name:</Text>
+          <Text style={styles.label}>Class Code:</Text>
           <Text style={styles.value}>{student.sv_lop_ma}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Class Name:</Text>
+          <Text style={styles.value}>{student.sv_lop_ten_tieng_viet}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Gender:</Text>
@@ -228,15 +241,47 @@ export default function StudentInfoScreen() {
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Date of Birth:</Text>
-          <Text style={styles.value}>{student.user_birthday}</Text>
+          <Text style={styles.value}>{student.sv_sinh_vien_ngay_sinh}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Email:</Text>
-          <Text style={styles.value}>{student.email}</Text>
+          <Text style={styles.value}>{student.sv_sinh_vien_email}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.label}>Phone:</Text>
-          <Text style={styles.value}>{student.user_phone}</Text>
+          <Text style={styles.value}>{student.sv_sinh_vien_sdt}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Address:</Text>
+          <Text style={styles.value}>
+            {student.sv_sinh_vien_dia_chi_thuong_tru}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Passport:</Text>
+          <Text style={styles.value}>{student.sv_sinh_vien_cccd}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Ethnicity:</Text>
+          <Text style={styles.value}>{student.dm_dan_toc_ten_tieng_anh}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Religion:</Text>
+          <Text style={styles.value}>{student.dm_ten_ton_giao_tieng_anh}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Current Nationality:</Text>
+          <Text style={styles.value}>
+            {student.quoc_tich_hien_tai_tieng_anh}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Course:</Text>
+          <Text style={styles.value}>{student.ctdt_khoa_hoc_nam_hoc}</Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Enrollment Date:</Text>
+          <Text style={styles.value}>{student.sv_sinh_vien_ngay_nhap_hoc}</Text>
         </View>
       </View>
 
